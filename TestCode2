@@ -1,0 +1,41 @@
+import pandas as pd
+
+# Load the Excel file
+df = pd.read_excel('tasks.xlsx')
+
+# Function to get task ID by task name
+def get_task_id_by_name(df, task_name):
+    try:
+        task_id = df.loc[df['Task Name'] == task_name, 'ID'].values[0]
+        return task_id
+    except IndexError:
+        return None
+
+# Function to get predecessor or successor task names and their corresponding IDs
+def get_task_dependencies(df, task_name, dependency_type='Predecessors'):
+    task_id = get_task_id_by_name(df, task_name)
+    if not task_id:
+        return None
+    
+    dependencies = df.loc[df['Task Name'] == task_name, dependency_type].values[0]
+    
+    # If there are no dependencies, return an empty list
+    if pd.isna(dependencies):
+        return []
+
+    dependency_ids = [int(dep.strip()) for dep in str(dependencies).split(',')]
+    
+    # Extract task names by dependency IDs
+    result = df[df['ID'].isin(dependency_ids)]['Task Name'].tolist()
+    
+    return result
+
+# Create new columns to store Predecessor and Successor names
+df['Predecessor Task Names'] = df.apply(lambda x: get_task_dependencies(df, x['Task Name'], 'Predecessors'), axis=1)
+df['Successor Task Names'] = df.apply(lambda x: get_task_dependencies(df, x['Task Name'], 'Successors'), axis=1)
+
+# Display the dataframe with the new information
+print(df[['ID', 'Task Name', 'Predecessor Task Names', 'Successor Task Names']])
+
+# Save the modified dataframe to a new Excel file
+df.to_excel('updated_tasks.xlsx', index=False)
