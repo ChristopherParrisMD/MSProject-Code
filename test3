@@ -1,0 +1,69 @@
+Sub PopulatePredecessorsFromExcel()
+    Dim xlApp As Object
+    Dim xlWorkbook As Object
+    Dim xlWorksheet As Object
+    Dim projectTask As Task
+    Dim excelTaskName As String
+    Dim taskRow As Long
+    Dim taskID As String
+    Dim predecessorText As String
+    Dim lastRow As Long
+    
+    ' Update with the local path to your OneDrive file
+    Dim excelFilePath As String
+    excelFilePath = "C:\Users\YourUsername\OneDrive\YourFolder\YourFile.xlsx"  ' Update this path
+
+    ' Check if the file exists before trying to open it
+    If Dir(excelFilePath) = "" Then
+        MsgBox "File not found at specified path: " & excelFilePath
+        Exit Sub
+    End If
+    
+    ' Open Excel and the workbook
+    Set xlApp = CreateObject("Excel.Application")
+    Set xlWorkbook = xlApp.Workbooks.Open(excelFilePath)
+    Set xlWorksheet = xlWorkbook.Sheets(1) ' Adjust if not using the first sheet
+
+    ' Find the last row with data in Excel
+    lastRow = xlWorksheet.Cells(xlWorksheet.Rows.Count, 1).End(-4162).Row ' -4162 = xlUp
+    
+    ' Loop through each task in the Excel file
+    For taskRow = 2 To lastRow ' Start at 2, assuming row 1 has headers
+        excelTaskName = xlWorksheet.Cells(taskRow, 1).Value ' Column A has Task Name
+        
+        ' Loop through MS Project tasks to find matching task name
+        For Each projectTask In ActiveProject.Tasks
+            If Not projectTask Is Nothing Then
+                If projectTask.Name = excelTaskName Then
+                    taskID = projectTask.ID
+                    Exit For
+                End If
+            End If
+        Next projectTask
+        
+        ' Get the corresponding task name in Excel to use as a Predecessor in MS Project
+        If Not IsEmpty(taskID) Then
+            For Each projectTask In ActiveProject.Tasks
+                If Not projectTask Is Nothing Then
+                    ' If the task has the Excel task name as a predecessor, add the ID
+                    If InStr(1, projectTask.Name, excelTaskName) > 0 Then
+                        If projectTask.Predecessors <> "" Then
+                            projectTask.Predecessors = projectTask.Predecessors & "," & taskID
+                        Else
+                            projectTask.Predecessors = taskID
+                        End If
+                    End If
+                End If
+            Next projectTask
+        End If
+    Next taskRow
+    
+    ' Close the workbook and release Excel
+    xlWorkbook.Close False
+    xlApp.Quit
+    Set xlWorksheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+    
+    MsgBox "Predecessors populated successfully!"
+End Sub
