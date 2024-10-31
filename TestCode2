@@ -1,41 +1,52 @@
-import pandas as pd
+Sub ImportPredecessorsSuccessorsFromExcel()
+    Dim xlApp As Object
+    Dim xlBook As Object
+    Dim ws As Object
+    Dim projTask As Task
+    Dim i As Integer
 
-# Load the Excel file
-df = pd.read_excel('tasks.xlsx')
+    ' Create a new Excel instance
+    Set xlApp = CreateObject("Excel.Application")
+    xlApp.Visible = False
 
-# Function to get task ID by task name
-def get_task_id_by_name(df, task_name):
-    try:
-        task_id = df.loc[df['Task Name'] == task_name, 'ID'].values[0]
-        return task_id
-    except IndexError:
-        return None
+    ' Open the workbook
+    Set xlBook = xlApp.Workbooks.Open("C:\path\to\updated_tasks.xlsx")
+    Set ws = xlBook.Worksheets(1) ' Assuming the relevant data is in the first worksheet
 
-# Function to get predecessor or successor task names and their corresponding IDs
-def get_task_dependencies(df, task_name, dependency_type='Predecessors'):
-    task_id = get_task_id_by_name(df, task_name)
-    if not task_id:
-        return None
-    
-    dependencies = df.loc[df['Task Name'] == task_name, dependency_type].values[0]
-    
-    # If there are no dependencies, return an empty list
-    if pd.isna(dependencies):
-        return []
+    ' Loop through Excel rows and update project tasks
+    i = 2 ' Assuming row 1 has headers, start at row 2
+    Do While ws.Cells(i, 1).Value <> ""
+        Dim taskId As Long
+        Dim taskName As String
+        Dim predecessors As String
+        Dim successors As String
+        
+        ' Read data from Excel file
+        taskId = ws.Cells(i, 1).Value
+        taskName = ws.Cells(i, 2).Value
+        predecessors = ws.Cells(i, 3).Value
+        successors = ws.Cells(i, 4).Value
 
-    dependency_ids = [int(dep.strip()) for dep in str(dependencies).split(',')]
-    
-    # Extract task names by dependency IDs
-    result = df[df['ID'].isin(dependency_ids)]['Task Name'].tolist()
-    
-    return result
+        ' Find the corresponding task in the MS Project file
+        For Each projTask In ActiveProject.Tasks
+            If Not projTask Is Nothing Then
+                If projTask.ID = taskId Then
+                    ' Update the task information
+                    projTask.Name = taskName
+                    If predecessors <> "" Then
+                        projTask.Predecessors = predecessors
+                    End If
+                    ' Note: Successors are typically updated indirectly via predecessors
+                End If
+            End If
+        Next projTask
+        i = i + 1
+    Loop
 
-# Create new columns to store Predecessor and Successor names
-df['Predecessor Task Names'] = df.apply(lambda x: get_task_dependencies(df, x['Task Name'], 'Predecessors'), axis=1)
-df['Successor Task Names'] = df.apply(lambda x: get_task_dependencies(df, x['Task Name'], 'Successors'), axis=1)
+    ' Clean up
+    xlBook.Close False
+    xlApp.Quit
+    Set xlBook = Nothing
+    Set xlApp = Nothing
+End Sub
 
-# Display the dataframe with the new information
-print(df[['ID', 'Task Name', 'Predecessor Task Names', 'Successor Task Names']])
-
-# Save the modified dataframe to a new Excel file
-df.to_excel('updated_tasks.xlsx', index=False)
