@@ -2,44 +2,58 @@ Sub ConvertSSToFS()
     Dim T As Task
     Dim Dep As TaskDependency
     Dim SSCount As Integer
+    Dim ErrorCount As Integer
     
     'Check if a project is open
     If Not ActiveProject Is Nothing Then
         'Turn off screen updating for performance
         Application.ScreenUpdating = False
         
-        'Initialize counter
+        'Initialize counters
         SSCount = 0
+        ErrorCount = 0
         
         'Loop through all tasks in project
         For Each T In ActiveProject.Tasks
             If Not T Is Nothing Then
                 'Check if task has predecessors
                 If Not T.PredecessorTasks Is Nothing Then
-                    'Loop through each dependency
-                    For Each Dep In T.TaskDependencies
+                    Dim depCount As Integer
+                    depCount = T.TaskDependencies.Count
+                    
+                    'Loop through dependencies backwards to avoid collection changes affecting the loop
+                    While depCount > 0
+                        Set Dep = T.TaskDependencies(depCount)
+                        
                         'Check if it's a Start-to-Start dependency
                         If Dep.Type = 1 Then 'pjSS = 1
                             'Store the predecessor task and current lag
                             Dim PredTask As Task
                             Set PredTask = Dep.From
-                            Dim CurrentLag As Long
-                            CurrentLag = Dep.Lag
                             
-                            'Calculate new lag for FS
-                            Dim NewLag As Long
-                            NewLag = CurrentLag - (PredTask.Duration)
-                            
-                            'Delete the SS dependency
-                            Dep.Delete
-                            
-                            'Create new FS dependency with adjusted lag
-                            T.TaskDependencies.Add PredTask, 0, NewLag 'pjFS = 0
-                            
-                            'Increment counter
-                            SSCount = SSCount + 1
+                            'Check if task would become its own predecessor
+                            If PredTask.ID <> T.ID Then
+                                Dim CurrentLag As Long
+                                CurrentLag = Dep.Lag
+                                
+                                'Calculate new lag for FS
+                                Dim NewLag As Long
+                                NewLag = CurrentLag - (PredTask.Duration)
+                                
+                                'Delete the SS dependency
+                                Dep.Delete
+                                
+                                'Create new FS dependency with adjusted lag
+                                T.TaskDependencies.Add PredTask, 0, NewLag 'pjFS = 0
+                                
+                                'Increment counter
+                                SSCount = SSCount + 1
+                            Else
+                                ErrorCount = ErrorCount + 1
+                            End If
                         End If
-                    Next Dep
+                        depCount = depCount - 1
+                    Wend
                 End If
             End If
         Next T
@@ -47,8 +61,13 @@ Sub ConvertSSToFS()
         'Turn screen updating back on
         Application.ScreenUpdating = True
         
-        'Show completion message
-        MsgBox SSCount & " Start-to-Start dependencies were converted to Finish-to-Start.", vbInformation
+        'Show completion message with error count if any
+        If ErrorCount > 0 Then
+            MsgBox SSCount & " Start-to-Start dependencies were converted to Finish-to-Start." & vbNewLine & _
+                  ErrorCount & " dependencies were skipped due to self-referencing tasks.", vbInformation
+        Else
+            MsgBox SSCount & " Start-to-Start dependencies were converted to Finish-to-Start.", vbInformation
+        End If
     Else
         MsgBox "Please open a project first.", vbExclamation
     End If
