@@ -1,55 +1,57 @@
 Sub ConvertSSToFS()
     Dim T As Task
     Dim Dep As TaskDependency
-    Dim Proj As Project
     Dim SSCount As Integer
     
-    'Set reference to active project
-    Set Proj = ActiveProject
-    
-    'Turn off screen updating for performance
-    Application.ScreenUpdating = False
-    
-    'Initialize counter
-    SSCount = 0
-    
-    'Loop through all tasks in project
-    For Each T In Proj.Tasks
-        If Not T Is Nothing Then
-            If T.Dependencies.Count > 0 Then
-                'Loop through each dependency
-                For Each Dep In T.Dependencies
-                    'Check if it's a Start-to-Start dependency
-                    If Dep.Type = pjSS Then
-                        'Store the predecessor task and current lag
-                        Dim PredTask As Task
-                        Set PredTask = Dep.From
-                        Dim CurrentLag As Long
-                        CurrentLag = Dep.Lag
-                        
-                        'Calculate new lag for FS
-                        Dim NewLag As Long
-                        NewLag = CurrentLag - (PredTask.Duration * 480) 'Convert duration to minutes
-                        
-                        'Delete the SS dependency
-                        Dep.Delete
-                        
-                        'Create new FS dependency with adjusted lag
-                        T.Dependencies.Add PredTask, pjFS, NewLag
-                        
-                        'Increment counter
-                        SSCount = SSCount + 1
-                    End If
-                Next Dep
+    'Check if a project is open
+    If Not ActiveProject Is Nothing Then
+        'Turn off screen updating for performance
+        Application.ScreenUpdating = False
+        
+        'Initialize counter
+        SSCount = 0
+        
+        'Loop through all tasks in project
+        For Each T In ActiveProject.Tasks
+            If Not T Is Nothing Then
+                'Check if task has predecessors
+                If Not T.PredecessorTasks Is Nothing Then
+                    'Loop through each dependency
+                    For Each Dep In T.TaskDependencies
+                        'Check if it's a Start-to-Start dependency
+                        If Dep.Type = 1 Then 'pjSS = 1
+                            'Store the predecessor task and current lag
+                            Dim PredTask As Task
+                            Set PredTask = Dep.From
+                            Dim CurrentLag As Long
+                            CurrentLag = Dep.Lag
+                            
+                            'Calculate new lag for FS
+                            Dim NewLag As Long
+                            NewLag = CurrentLag - (PredTask.Duration)
+                            
+                            'Delete the SS dependency
+                            Dep.Delete
+                            
+                            'Create new FS dependency with adjusted lag
+                            T.TaskDependencies.Add PredTask, 0, NewLag 'pjFS = 0
+                            
+                            'Increment counter
+                            SSCount = SSCount + 1
+                        End If
+                    Next Dep
+                End If
             End If
-        End If
-    Next T
-    
-    'Turn screen updating back on
-    Application.ScreenUpdating = True
-    
-    'Show completion message
-    MsgBox SSCount & " Start-to-Start dependencies were converted to Finish-to-Start.", vbInformation
+        Next T
+        
+        'Turn screen updating back on
+        Application.ScreenUpdating = True
+        
+        'Show completion message
+        MsgBox SSCount & " Start-to-Start dependencies were converted to Finish-to-Start.", vbInformation
+    Else
+        MsgBox "Please open a project first.", vbExclamation
+    End If
     
 End Sub
 
