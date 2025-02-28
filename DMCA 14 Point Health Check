@@ -1,0 +1,90 @@
+Sub DCMA_Health_Check()
+    Dim t As Task
+    Dim TotalTasks As Integer, NonStartMilestones As Integer, NonFinishMilestones As Integer
+    Dim HardConstraints As Integer, MissedLogic As Integer, Leads As Integer, Lags As Integer
+    Dim NegativeFloat As Integer, HighFloat As Integer, InvalidDates As Integer, CPLessThan5 As Integer
+    Dim CriticalTasksMissingResources As Integer, MissedBaseline As Integer, LateTasks As Integer
+    Dim TotalCriticalTasks As Integer, TotalIncompleteTasks As Integer
+    
+    TotalTasks = 0
+    NonStartMilestones = 0
+    NonFinishMilestones = 0
+    HardConstraints = 0
+    MissedLogic = 0
+    Leads = 0
+    Lags = 0
+    NegativeFloat = 0
+    HighFloat = 0
+    InvalidDates = 0
+    CPLessThan5 = 0
+    CriticalTasksMissingResources = 0
+    MissedBaseline = 0
+    LateTasks = 0
+    TotalCriticalTasks = 0
+    TotalIncompleteTasks = 0
+    
+    For Each t In ActiveProject.Tasks
+        If Not t Is Nothing Then
+            If Not t.Summary Then
+                TotalTasks = TotalTasks + 1
+                
+                ' Check 1: Logic (Tasks missing predecessors or successors)
+                If t.Predecessors = "" And t.Successors = "" Then MissedLogic = MissedLogic + 1
+                
+                ' Check 2: Leads (Negative Lag in Predecessor)
+                If t.Predecessors <> "" And InStr(t.Predecessors, "-") > 0 Then Leads = Leads + 1
+                
+                ' Check 3: Lags (Positive Lag in Predecessor)
+                If t.Predecessors <> "" And InStr(t.Predecessors, "+") > 0 Then Lags = Lags + 1
+                
+                ' Check 4: Hard Constraints (Must Finish On, Must Start On, etc.)
+                If t.ConstraintType = pjMustFinishOn Or t.ConstraintType = pjMustStartOn Or _
+                   t.ConstraintType = pjFinishNoLaterThan Or t.ConstraintType = pjStartNoEarlierThan Then
+                   HardConstraints = HardConstraints + 1
+                End If
+                
+                ' Check 5: Negative Float
+                If t.TotalSlack < 0 Then NegativeFloat = NegativeFloat + 1
+                
+                ' Check 6: High Float (>44 days)
+                If t.TotalSlack > (44 * 480) Then HighFloat = HighFloat + 1
+                
+                ' Check 7: Invalid Dates (Start/Finish beyond project finish)
+                If t.Finish > ActiveProject.Finish Then InvalidDates = InvalidDates + 1
+                
+                ' Check 8: CPLessThan5 (Critical Path Length Index less than 5)
+                If t.Critical And t.Duration < 5 * 480 Then CPLessThan5 = CPLessThan5 + 1
+                
+                ' Check 9: Critical Tasks Missing Resources
+                If t.Critical And t.ResourceNames = "" Then CriticalTasksMissingResources = CriticalTasksMissingResources + 1
+                
+                ' Check 10: Missed Baseline (Tasks without Baseline Start/Finish)
+                If t.BaselineStart = "NA" Or t.BaselineFinish = "NA" Then MissedBaseline = MissedBaseline + 1
+                
+                ' Check 11: Late Tasks (Incomplete tasks past Status Date)
+                If Not t.PercentComplete = 100 And t.Finish < ActiveProject.StatusDate Then LateTasks = LateTasks + 1
+                
+                ' Count critical and incomplete tasks
+                If t.Critical Then TotalCriticalTasks = TotalCriticalTasks + 1
+                If t.PercentComplete < 100 Then TotalIncompleteTasks = TotalIncompleteTasks + 1
+            End If
+        End If
+    Next t
+    
+    ' Display Results
+    MsgBox "DCMA 14-Point Health Check Results:" & vbCrLf & vbCrLf & _
+           "1. Missing Logic: " & MissedLogic & " (" & Round((MissedLogic / TotalTasks) * 100, 2) & "%)" & vbCrLf & _
+           "2. Leads: " & Leads & " (" & Round((Leads / TotalTasks) * 100, 2) & "%)" & vbCrLf & _
+           "3. Lags: " & Lags & " (" & Round((Lags / TotalTasks) * 100, 2) & "%)" & vbCrLf & _
+           "4. Hard Constraints: " & HardConstraints & " (" & Round((HardConstraints / TotalTasks) * 100, 2) & "%)" & vbCrLf & _
+           "5. Negative Float: " & NegativeFloat & vbCrLf & _
+           "6. High Float (>44 days): " & HighFloat & vbCrLf & _
+           "7. Invalid Dates: " & InvalidDates & vbCrLf & _
+           "8. CP Length Index <5: " & CPLessThan5 & vbCrLf & _
+           "9. Critical Tasks Missing Resources: " & CriticalTasksMissingResources & vbCrLf & _
+           "10. Missed Baseline: " & MissedBaseline & vbCrLf & _
+           "11. Late Tasks: " & LateTasks & vbCrLf & _
+           "Total Critical Tasks: " & TotalCriticalTasks & vbCrLf & _
+           "Total Incomplete Tasks: " & TotalIncompleteTasks, vbInformation, "DCMA 14-Point Check"
+           
+End Sub
