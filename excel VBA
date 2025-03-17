@@ -1,0 +1,12 @@
+Function RemovePunctuationNumbers(ByVal Txt As String) As String
+    Dim i As Integer, Ch As String
+    Dim Result As String
+    For i = 1 To Len(Txt)
+        Ch = Mid(Txt, i, 1)
+        ' Keep only letters and spaces
+        If Ch Like "[A-Za-z ]" Then
+            Result = Result & Ch
+        End If
+    Next i
+    RemovePunctuationNumbers = Result
+End Function
