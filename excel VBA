@@ -31,7 +31,7 @@ Sub RemovePunctuationAndNumbers()
                 cleanText = Replace(cleanText, i, "")
             Next i
             
-            ' Remove punctuation marks
+            ' Remove punctuation marks (excluding dashes and parentheses)
             cleanText = Replace(cleanText, ".", "")
             cleanText = Replace(cleanText, ",", "")
             cleanText = Replace(cleanText, ";", "")
@@ -40,8 +40,7 @@ Sub RemovePunctuationAndNumbers()
             cleanText = Replace(cleanText, "?", "")
             cleanText = Replace(cleanText, "'", "")
             cleanText = Replace(cleanText, """", "")
-            cleanText = Replace(cleanText, "(", "")
-            cleanText = Replace(cleanText, ")", "")
+            ' Removed the lines that replace parentheses
             cleanText = Replace(cleanText, "[", "")
             cleanText = Replace(cleanText, "]", "")
             cleanText = Replace(cleanText, "{", "")
@@ -55,7 +54,7 @@ Sub RemovePunctuationAndNumbers()
             cleanText = Replace(cleanText, "^", "")
             cleanText = Replace(cleanText, "&", "")
             cleanText = Replace(cleanText, "*", "")
-            cleanText = Replace(cleanText, "-", "")
+            ' Dash already preserved from previous modification
             cleanText = Replace(cleanText, "_", "")
             cleanText = Replace(cleanText, "+", "")
             cleanText = Replace(cleanText, "=", "")
@@ -70,5 +69,5 @@ Sub RemovePunctuationAndNumbers()
         End If
     Next cell
     
-    MsgBox "Punctuation and numbers have been removed from column " & colLetter, vbInformation
+    MsgBox "Punctuation and numbers have been removed from column " & colLetter & " (dashes and parentheses preserved)", vbInformation
 End Sub
