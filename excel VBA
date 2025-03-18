@@ -1,16 +1,74 @@
-Function RemovePunctuationNumbers(ByVal Txt As String) As String
-    Dim i As Integer
-    Dim Ch As String
-    Dim Result As String
+Sub RemovePunctuationAndNumbers()
+    Dim ws As Worksheet
+    Dim rng As Range
+    Dim cell As Range
+    Dim cleanText As String
+    Dim i As Long
+    Dim colLetter As String
+    Dim lastRow As Long
     
-    ' Loop through each character in the input text
-    For i = 1 To Len(Txt)
-        Ch = Mid(Txt, i, 1)
-        ' Keep only letters and spaces
-        If Ch Like "[A-Za-z ]" Then
-            Result = Result & Ch
+    ' Set the worksheet (you can change this to the specific sheet you're working with)
+    Set ws = ActiveSheet
+    
+    ' Ask the user which column to clean
+    colLetter = InputBox("Enter the column letter to clean (e.g., A, B, C):", "Column Selection")
+    If colLetter = "" Then Exit Sub
+    
+    ' Find the last row with data in that column
+    lastRow = ws.Cells(ws.Rows.Count, colLetter).End(xlUp).Row
+    
+    ' Set the range to process
+    Set rng = ws.Range(colLetter & "1:" & colLetter & lastRow)
+    
+    ' Process each cell in the range
+    For Each cell In rng
+        If Not IsEmpty(cell) Then
+            ' Get the current text
+            cleanText = cell.Value
+            
+            ' Remove numbers
+            For i = 0 To 9
+                cleanText = Replace(cleanText, i, "")
+            Next i
+            
+            ' Remove punctuation marks
+            cleanText = Replace(cleanText, ".", "")
+            cleanText = Replace(cleanText, ",", "")
+            cleanText = Replace(cleanText, ";", "")
+            cleanText = Replace(cleanText, ":", "")
+            cleanText = Replace(cleanText, "!", "")
+            cleanText = Replace(cleanText, "?", "")
+            cleanText = Replace(cleanText, "'", "")
+            cleanText = Replace(cleanText, """", "")
+            cleanText = Replace(cleanText, "(", "")
+            cleanText = Replace(cleanText, ")", "")
+            cleanText = Replace(cleanText, "[", "")
+            cleanText = Replace(cleanText, "]", "")
+            cleanText = Replace(cleanText, "{", "")
+            cleanText = Replace(cleanText, "}", "")
+            cleanText = Replace(cleanText, "/", "")
+            cleanText = Replace(cleanText, "\", "")
+            cleanText = Replace(cleanText, "@", "")
+            cleanText = Replace(cleanText, "#", "")
+            cleanText = Replace(cleanText, "$", "")
+            cleanText = Replace(cleanText, "%", "")
+            cleanText = Replace(cleanText, "^", "")
+            cleanText = Replace(cleanText, "&", "")
+            cleanText = Replace(cleanText, "*", "")
+            cleanText = Replace(cleanText, "-", "")
+            cleanText = Replace(cleanText, "_", "")
+            cleanText = Replace(cleanText, "+", "")
+            cleanText = Replace(cleanText, "=", "")
+            cleanText = Replace(cleanText, "|", "")
+            cleanText = Replace(cleanText, "<", "")
+            cleanText = Replace(cleanText, ">", "")
+            cleanText = Replace(cleanText, "~", "")
+            cleanText = Replace(cleanText, "`", "")
+            
+            ' Update the cell with clean text
+            cell.Value = Trim(cleanText)
         End If
-    Next i
+    Next cell
     
-    RemovePunctuationNumbers = Trim(Result) ' Remove leading or trailing spaces
-End Function
+    MsgBox "Punctuation and numbers have been removed from column " & colLetter, vbInformation
+End Sub
