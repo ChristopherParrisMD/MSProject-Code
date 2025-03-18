@@ -1,6 +1,9 @@
 Function RemovePunctuationNumbers(ByVal Txt As String) As String
-    Dim i As Integer, Ch As String
+    Dim i As Integer
+    Dim Ch As String
     Dim Result As String
+    
+    ' Loop through each character in the input text
     For i = 1 To Len(Txt)
         Ch = Mid(Txt, i, 1)
         ' Keep only letters and spaces
@@ -8,5 +11,6 @@ Function RemovePunctuationNumbers(ByVal Txt As String) As String
             Result = Result & Ch
         End If
     Next i
-    RemovePunctuationNumbers = Result
+    
+    RemovePunctuationNumbers = Trim(Result) ' Remove leading or trailing spaces
 End Function
