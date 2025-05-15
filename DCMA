@@ -1,0 +1,18 @@
+The **DCMA 14-Point Schedule Assessment** evaluates the technical integrity of a project schedule using the following checks:
+
+1. **Logic:** At least 95% of tasks should have valid predecessor and successor relationships.
+2. **Leads:** No more than 5% of relationships should have leads (negative lag).
+3. **Lags:** No more than 5% of relationships should use lag.
+4. **Relationship Types:** Finish-to-Start (FS) should be used in at least 90% of relationships.
+5. **Hard Constraints:** No more than 5% of tasks should have hard constraints (e.g., Must Start On).
+6. **High Float:** No more than 5% of incomplete tasks should have total float greater than 44 working days.
+7. **Negative Float:** No tasks should have negative total float.
+8. **High Duration:** No more than 5% of tasks should have durations greater than 44 working days.
+9. **Invalid Dates:** No tasks should have actual start or finish dates in the future.
+10. **Resources:** At least 95% of tasks should be resource-loaded (if required).
+11. **Missed Tasks:** Tasks that should have started or finished based on status date but have not.
+12. **Critical Path Test:** The schedule should have a valid and continuous critical path.
+13. **Critical Path Length Index (CPLI):** Should be ≥ 0.95.
+14. **Baseline Execution Index (BEI):** Should be ≥ 0.95.
+
+These metrics help assess schedule realism, logic integrity, and readiness for Earned Value Management (EVM) reporting.
