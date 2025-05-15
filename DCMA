@@ -16,3 +16,76 @@ The **DCMA 14-Point Schedule Assessment** evaluates the technical integrity of a
 14. **Baseline Execution Index (BEI):** Should be ≥ 0.95.
 
 These metrics help assess schedule realism, logic integrity, and readiness for Earned Value Management (EVM) reporting.
+
+**DCMA 14-Point Schedule Health Check: Definitions and Implications**
+
+1. **Logic**
+
+   * **Definition:** Validates that at least 95% of tasks have logical predecessors and successors.
+   * **Implication:** Tasks lacking logic links cannot support network calculations or critical path analysis, undermining schedule credibility.
+
+2. **Leads**
+
+   * **Definition:** Measures use of negative lag (lead time) between tasks, which should be under 5%.
+   * **Implication:** Excessive leads may signal unrealistic acceleration or poor schedule discipline, obscuring true dependencies.
+
+3. **Lags**
+
+   * **Definition:** Evaluates use of lag time in relationships; should not exceed 5% of total links.
+   * **Implication:** Overuse can mask schedule risks and complicate impact analysis.
+
+4. **Relationship Types**
+
+   * **Definition:** At least 90% of relationships should be Finish-to-Start (FS), the preferred logic type.
+   * **Implication:** Excessive use of other types (e.g., SS, FF) may indicate complex or non-standard sequencing, reducing interpretability.
+
+5. **Hard Constraints**
+
+   * **Definition:** Tracks use of constraints like "Must Start On" or "Must Finish On"; should be <5%.
+   * **Implication:** Overuse restricts schedule flexibility and may create artificial float or negative float conditions.
+
+6. **High Float**
+
+   * **Definition:** Flags tasks with total float >44 working days.
+   * **Implication:** Suggests poor network logic or disconnected tasks, which do not contribute to schedule integrity.
+
+7. **Negative Float**
+
+   * **Definition:** Identifies tasks with total float <0, indicating late completion relative to constraints or milestones.
+   * **Implication:** Signifies the project is behind schedule and that corrective action is needed to avoid milestone violations.
+
+8. **High Duration**
+
+   * **Definition:** Highlights tasks with durations exceeding 44 working days.
+   * **Implication:** Long durations reduce control and tracking fidelity; such tasks should be decomposed for better management.
+
+9. **Invalid Dates**
+
+   * **Definition:** Detects actual start or finish dates occurring after the project’s status date.
+   * **Implication:** Indicates improper status updates or data entry errors, undermining forecast reliability.
+
+10. **Resources**
+
+    * **Definition:** Checks whether tasks are resource-loaded (≥95% if required).
+    * **Implication:** Absence of resource data limits visibility into workload, capacity, and cost planning.
+
+11. **Missed Tasks**
+
+    * **Definition:** Counts tasks that should have started or finished before the status date but are not marked as complete.
+    * **Implication:** Indicates performance lag, affecting Earned Value and execution credibility.
+
+12. **Critical Path Test**
+
+    * **Definition:** Ensures the schedule contains a continuous and logical critical path.
+    * **Implication:** A broken or fragmented critical path suggests the schedule is unreliable for forecasting project completion.
+
+13. **Critical Path Length Index (CPLI)**
+
+    * **Definition:** Compares the remaining duration on the critical path to total float; should be ≥0.95.
+    * **Implication:** Low CPLI indicates the schedule lacks sufficient margin and may be at risk of delay.
+
+14. **Baseline Execution Index (BEI)**
+
+    * **Definition:** Measures the ratio of actual completed tasks to those planned through the status date; target is ≥0.95.
+    * **Implication:** Low BEI indicates delays in execution, requiring analysis and potential re-planning.
+
