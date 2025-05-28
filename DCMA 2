@@ -389,24 +389,64 @@ Function Check13_ScheduleMargin(proj As Project) As Double
     Dim projectFinish As Date
     Dim constraintDate As Date
     Dim margin As Long
+    Dim t As Task
     
     projectFinish = proj.ProjectFinish
     
-    ' Look for deadline or constraint date
-    ' This is simplified - you might have a specific deadline custom field
-    constraintDate = proj.Deadline
+    ' Look for project deadline in several ways:
+    ' Option 1: Check for a milestone named "Contract End" or "Deadline"
+    For Each t In proj.Tasks
+        If Not t Is Nothing Then
+            If t.Milestone And (InStr(UCase(t.Name), "DEADLINE") > 0 Or _
+                               InStr(UCase(t.Name), "CONTRACT") > 0 Or _
+                               InStr(UCase(t.Name), "DELIVERY") > 0) Then
+                constraintDate = t.Finish
+                Exit For
+            End If
+        End If
+    Next t
     
-    If constraintDate > 0 Then
+    ' Option 2: If no deadline milestone found, check enterprise custom fields
+    ' You may need to adjust this based on your organization's custom fields
+    On Error Resume Next
+    If constraintDate = 0 Then
+        ' Try to get from project custom field (example: Finish1)
+        constraintDate = proj.ProjectSummaryTask.Finish1
+    End If
+    On Error GoTo 0
+    
+    ' Option 3: Look for the last task in the schedule
+    If constraintDate = 0 Then
+        Dim lastDate As Date
+        lastDate = 0
+        For Each t In proj.Tasks
+            If Not t Is Nothing And Not t.Summary Then
+                If t.Finish > lastDate Then
+                    lastDate = t.Finish
+                End If
+            End If
+        Next t
+        ' Use last task date plus buffer as constraint
+        If lastDate > 0 Then
+            constraintDate = DateAdd("d", 30, lastDate) ' 30 day buffer
+        End If
+    End If
+    
+    ' Calculate margin
+    If constraintDate > 0 And constraintDate > projectFinish Then
         margin = DateDiff("d", projectFinish, constraintDate)
         If margin >= 10 Then ' At least 10 days margin
             Check13_ScheduleMargin = 1
         ElseIf margin >= 5 Then
             Check13_ScheduleMargin = 0.8
+        ElseIf margin >= 0 Then
+            Check13_ScheduleMargin = 0.6
         Else
-            Check13_ScheduleMargin = 0.5
+            Check13_ScheduleMargin = 0.3
         End If
     Else
-        Check13_ScheduleMargin = 0.9 ' Default if no deadline
+        ' Default score if no valid constraint date found
+        Check13_ScheduleMargin = 0.9
     End If
 End Function
 
