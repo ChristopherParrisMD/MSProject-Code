@@ -1,0 +1,144 @@
+Option Explicit
+
+Sub ScheduleHealthCheck()
+    ' 15-Point Schedule Health Check Macro for MS Project
+    ' Enhanced to include invalid actual/forecast date check (DAU EVM263 aligned)
+    
+    Dim proj As Project
+    Dim t As Task
+    Dim i As Integer
+    Dim checkResults(1 To 15) As String
+    Dim checkScores(1 To 15) As Double
+    Dim score As Double
+    
+    Set proj = ActiveProject
+    If proj Is Nothing Then
+        MsgBox "No project is open!", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Initialize check descriptions
+    checkResults(1) = "Logic Check - Missing Dependencies"
+    checkResults(2) = "No Negative Lag Time"
+    checkResults(3) = "No Excessive Lags (>20 days)"
+    checkResults(4) = "Minimal Hard Constraints"
+    checkResults(5) = "Total Float Reasonableness"
+    checkResults(6) = "Critical Path Integrity"
+    checkResults(7) = "Task Duration Reasonableness"
+    checkResults(8) = "Resource Assignment Check"
+    checkResults(9) = "Baseline Date Variance"
+    checkResults(10) = "No Excessive Float (>44 days)"
+    checkResults(11) = "No Logic on Summary Tasks"
+    checkResults(12) = "Milestone Duration = 0"
+    checkResults(13) = "Adequate Schedule Margin"
+    checkResults(14) = "Status Date Currency"
+    checkResults(15) = "Invalid Forecast and Actual Dates"
+    
+    ' Run all checks
+    checkScores(1) = Check1_Logic(proj)
+    checkScores(2) = Check2_NoLeads(proj)
+    checkScores(3) = Check3_NoExcessiveLags(proj)
+    checkScores(4) = Check4_DateConstraints(proj)
+    checkScores(5) = Check5_TotalFloat(proj)
+    checkScores(6) = Check6_CriticalPath(proj)
+    checkScores(7) = Check7_DurationReasonableness(proj)
+    checkScores(8) = Check8_ResourceLoading(proj)
+    checkScores(9) = Check9_BaselineVariance(proj)
+    checkScores(10) = Check10_HighFloat(proj)
+    checkScores(11) = Check11_SummaryTaskLogic(proj)
+    checkScores(12) = Check12_Milestones(proj)
+    checkScores(13) = Check13_ScheduleMargin(proj)
+    checkScores(14) = Check14_ProgressStatus(proj)
+    checkScores(15) = Check_InvalidDates(proj)
+    
+    ' Calculate overall score
+    score = 0
+    For i = 1 To 15
+        score = score + checkScores(i)
+    Next i
+    score = score / 15
+    
+    ' Display results
+    Call DisplayResults(checkResults, checkScores, score)
+End Sub
+
+' Existing check functions (Check1_Logic to Check14_ProgressStatus) stay the same here
+' Add the new Check_InvalidDates function:
+
+Function Check_InvalidDates(proj As Project) As Double
+    Dim t As Task
+    Dim errors As Long
+    Dim total As Long
+    Dim statusDate As Date
+    
+    statusDate = proj.StatusDate
+    If statusDate = 0 Then statusDate = Date ' fallback if not set
+    
+    For Each t In proj.Tasks
+        If Not t Is Nothing And Not t.Summary Then
+            total = total + 1
+            
+            ' Future actual start or finish dates
+            If (Not IsEmpty(t.ActualStart) And t.ActualStart > statusDate) Or _
+               (Not IsEmpty(t.ActualFinish) And t.ActualFinish > statusDate) Then
+                errors = errors + 1
+            End If
+            
+            ' Past start date but 0% complete (invalid forecast start)
+            If (t.PercentComplete = 0 And t.Start < statusDate) Then
+                errors = errors + 1
+            End If
+            
+            ' Past finish date but <100% complete (invalid forecast finish)
+            If (t.PercentComplete < 100 And t.Finish < statusDate) Then
+                errors = errors + 1
+            End If
+        End If
+    Next t
+    
+    If total > 0 Then
+        Check_InvalidDates = 1 - (errors / total)
+    Else
+        Check_InvalidDates = 1
+    End If
+End Function
+
+' DisplayResults function stays the same
+Sub DisplayResults(checkResults() As String, checkScores() As Double, overallScore As Double)
+    Dim reportText As String
+    Dim i As Integer
+    Dim status As String
+    
+    reportText = "15-POINT SCHEDULE HEALTH CHECK RESULTS" & vbCrLf
+    reportText = reportText & "======================================" & vbCrLf & vbCrLf
+    reportText = reportText & "Project: " & ActiveProject.Name & vbCrLf
+    reportText = reportText & "Date: " & Format(Date, "mm/dd/yyyy") & vbCrLf & vbCrLf
+    
+    For i = 1 To 15
+        If checkScores(i) >= 0.95 Then
+            status = "PASS"
+        ElseIf checkScores(i) >= 0.8 Then
+            status = "MARGINAL"
+        Else
+            status = "FAIL"
+        End If
+        reportText = reportText & Format(i, "00") & ". " & checkResults(i) & vbCrLf
+        reportText = reportText & "    Score: " & Format(checkScores(i), "0%") & " - " & status & vbCrLf & vbCrLf
+    Next i
+    
+    reportText = reportText & "======================================" & vbCrLf
+    reportText = reportText & "OVERALL SCHEDULE HEALTH SCORE: " & Format(overallScore, "0%") & vbCrLf
+    
+    If overallScore >= 0.95 Then
+        reportText = reportText & "Status: EXCELLENT - Schedule is well-constructed" & vbCrLf
+    ElseIf overallScore >= 0.8 Then
+        reportText = reportText & "Status: GOOD - Minor issues need attention" & vbCrLf
+    ElseIf overallScore >= 0.6 Then
+        reportText = reportText & "Status: FAIR - Several issues require correction" & vbCrLf
+    Else
+        reportText = reportText & "Status: POOR - Major schedule issues detected" & vbCrLf
+    End If
+    
+    MsgBox reportText, vbInformation, "Schedule Health Check Results"
+    ActiveProject.ProjectSummaryTask.Notes = reportText
+End Sub
