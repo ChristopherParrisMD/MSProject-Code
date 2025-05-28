@@ -8,9 +8,9 @@ Sub ScheduleHealthCheck()
     Dim resultsWs As Worksheet
     Dim lastRow As Long
     Dim totalTasks As Long
-    Dim score As Double
+    Dim score As Variant
     Dim checkResults(1 To 14) As String
-    Dim checkScores(1 To 14) As Double
+    Dim checkScores(1 To 14) As Variant
     Dim i As Integer
     
     ' Set the active worksheet
@@ -153,9 +153,14 @@ Sub ScheduleHealthCheck()
 End Sub
 
 ' Check 1: Logic Check
-Private Function RunCheck1(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck1(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, tasksWithoutLogic As Long, nonSummaryTasks As Long
+    Dim i As Long
+    Dim tasksWithoutLogic As Long
+    Dim nonSummaryTasks As Long
+    
+    tasksWithoutLogic = 0
+    nonSummaryTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
@@ -175,10 +180,15 @@ Private Function RunCheck1(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 2: No Negative Lags
-Private Function RunCheck2(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck2(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, leadsFound As Long, totalRelationships As Long
+    Dim i As Long
+    Dim leadsFound As Long
+    Dim totalRelationships As Long
     Dim cellValue As String
+    
+    leadsFound = 0
+    totalRelationships = 0
     
     For i = 2 To lastRow
         cellValue = ws.Cells(i, 10).Value & ""
@@ -198,10 +208,15 @@ Private Function RunCheck2(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 3: No Excessive Lags
-Private Function RunCheck3(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck3(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, excessiveLags As Long, totalRelationships As Long
+    Dim i As Long
+    Dim excessiveLags As Long
+    Dim totalRelationships As Long
     Dim cellValue As String
+    
+    excessiveLags = 0
+    totalRelationships = 0
     
     For i = 2 To lastRow
         cellValue = ws.Cells(i, 10).Value & ""
@@ -224,10 +239,15 @@ Private Function RunCheck3(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 4: Date Constraints
-Private Function RunCheck4(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck4(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, constrainedTasks As Long, totalTasks As Long
+    Dim i As Long
+    Dim constrainedTasks As Long
+    Dim totalTasks As Long
     Dim constraintType As String
+    
+    constrainedTasks = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
@@ -247,16 +267,21 @@ Private Function RunCheck4(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 5: Total Float
-Private Function RunCheck5(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck5(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, reasonableFloat As Long, totalTasks As Long
-    Dim floatValue As Double
+    Dim i As Long
+    Dim reasonableFloat As Long
+    Dim totalTasks As Long
+    Dim floatValue As Variant
+    
+    reasonableFloat = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
             totalTasks = totalTasks + 1
             If IsNumeric(ws.Cells(i, 15).Value) Then
-                floatValue = CDbl(ws.Cells(i, 15).Value)
+                floatValue = Val(ws.Cells(i, 15).Value)
                 If floatValue >= -5 And floatValue <= 44 Then
                     reasonableFloat = reasonableFloat + 1
                 End If
@@ -272,22 +297,27 @@ Private Function RunCheck5(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 6: Critical Path
-Private Function RunCheck6(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck6(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, criticalTasks As Long, totalTasks As Long
+    Dim i As Long
+    Dim criticalTasks As Long
+    Dim totalTasks As Long
+    Dim criticalPercent As Variant
+    
+    criticalTasks = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
             totalTasks = totalTasks + 1
             If ws.Cells(i, 16).Value = "Yes" Or _
-               (IsNumeric(ws.Cells(i, 15).Value) And CDbl(ws.Cells(i, 15).Value) = 0) Then
+               (IsNumeric(ws.Cells(i, 15).Value) And Val(ws.Cells(i, 15).Value) = 0) Then
                 criticalTasks = criticalTasks + 1
             End If
         End If
     Next i
     
     If totalTasks > 0 Then
-        Dim criticalPercent As Double
         criticalPercent = criticalTasks / totalTasks
         If criticalPercent >= 0.1 And criticalPercent <= 0.3 Then
             RunCheck6 = 1
@@ -300,16 +330,21 @@ Private Function RunCheck6(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 7: Duration Reasonableness
-Private Function RunCheck7(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck7(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, reasonableDurations As Long, totalTasks As Long
-    Dim duration As Double
+    Dim i As Long
+    Dim reasonableDurations As Long
+    Dim totalTasks As Long
+    Dim duration As Variant
+    
+    reasonableDurations = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
             totalTasks = totalTasks + 1
             If IsNumeric(ws.Cells(i, 8).Value) Then
-                duration = CDbl(ws.Cells(i, 8).Value)
+                duration = Val(ws.Cells(i, 8).Value)
                 If duration > 0 And duration <= 44 Then
                     reasonableDurations = reasonableDurations + 1
                 End If
@@ -325,9 +360,14 @@ Private Function RunCheck7(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 8: Resource Loading
-Private Function RunCheck8(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck8(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, resourcedTasks As Long, totalWorkTasks As Long
+    Dim i As Long
+    Dim resourcedTasks As Long
+    Dim totalWorkTasks As Long
+    
+    resourcedTasks = 0
+    totalWorkTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" And ws.Cells(i, 7).Value <> "Milestone" Then
@@ -346,16 +386,21 @@ Private Function RunCheck8(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 9: Baseline Variance
-Private Function RunCheck9(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck9(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, withinTolerance As Long, totalTasks As Long
+    Dim i As Long
+    Dim withinTolerance As Long
+    Dim totalTasks As Long
     Dim variance As Long
+    
+    withinTolerance = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
             totalTasks = totalTasks + 1
             If IsDate(ws.Cells(i, 6).Value) And IsDate(ws.Cells(i, 13).Value) Then
-                variance = DateDiff("d", CDate(ws.Cells(i, 13).Value), CDate(ws.Cells(i, 6).Value))
+                variance = DateDiff("d", ws.Cells(i, 13).Value, ws.Cells(i, 6).Value)
                 If Abs(variance) <= 10 Then
                     withinTolerance = withinTolerance + 1
                 End If
@@ -371,15 +416,20 @@ Private Function RunCheck9(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 10: High Float
-Private Function RunCheck10(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck10(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, excessiveFloat As Long, totalTasks As Long
+    Dim i As Long
+    Dim excessiveFloat As Long
+    Dim totalTasks As Long
+    
+    excessiveFloat = 0
+    totalTasks = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value <> "Summary" Then
             totalTasks = totalTasks + 1
             If IsNumeric(ws.Cells(i, 15).Value) Then
-                If CDbl(ws.Cells(i, 15).Value) > 44 Then
+                If Val(ws.Cells(i, 15).Value) > 44 Then
                     excessiveFloat = excessiveFloat + 1
                 End If
             End If
@@ -394,9 +444,14 @@ Private Function RunCheck10(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 11: Summary Task Logic
-Private Function RunCheck11(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck11(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, summaryWithLogic As Long, totalSummary As Long
+    Dim i As Long
+    Dim summaryWithLogic As Long
+    Dim totalSummary As Long
+    
+    summaryWithLogic = 0
+    totalSummary = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 5).Value = "Summary" Then
@@ -415,15 +470,20 @@ Private Function RunCheck11(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 12: Milestones
-Private Function RunCheck12(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck12(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, correctMilestones As Long, totalMilestones As Long
+    Dim i As Long
+    Dim correctMilestones As Long
+    Dim totalMilestones As Long
+    
+    correctMilestones = 0
+    totalMilestones = 0
     
     For i = 2 To lastRow
         If ws.Cells(i, 7).Value = "Milestone" Then
             totalMilestones = totalMilestones + 1
             If IsNumeric(ws.Cells(i, 8).Value) Then
-                If CDbl(ws.Cells(i, 8).Value) = 0 Then
+                If Val(ws.Cells(i, 8).Value) = 0 Then
                     correctMilestones = correctMilestones + 1
                 End If
             End If
@@ -438,13 +498,16 @@ Private Function RunCheck12(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Check 14: Progress Status
-Private Function RunCheck14(ws As Worksheet, lastRow As Long) As Double
+Function RunCheck14(ws As Worksheet, lastRow As Long)
     On Error Resume Next
-    Dim i As Long, hasProgress As Boolean
+    Dim i As Long
+    Dim hasProgress As Variant
+    
+    hasProgress = False
     
     For i = 2 To lastRow
         If IsNumeric(ws.Cells(i, 14).Value) Then
-            If CDbl(ws.Cells(i, 14).Value) > 0 Then
+            If Val(ws.Cells(i, 14).Value) > 0 Then
                 hasProgress = True
                 Exit For
             End If
@@ -459,7 +522,7 @@ Private Function RunCheck14(ws As Worksheet, lastRow As Long) As Double
 End Function
 
 ' Get comment for each check
-Private Function GetComment(checkNum As Integer, score As Double) As String
+Function GetComment(checkNum As Integer, score As Variant)
     Select Case checkNum
         Case 1
             If score < 0.95 Then
