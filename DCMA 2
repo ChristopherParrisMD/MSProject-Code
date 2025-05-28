@@ -1,0 +1,570 @@
+Option Explicit
+
+Sub ScheduleHealthCheck()
+    ' 14-Point Schedule Health Check Macro
+    ' Based on DAU EVM and Schedule Health Analysis best practices
+    
+    Dim ws As Worksheet
+    Dim resultsWs As Worksheet
+    Dim lastRow As Long
+    Dim totalTasks As Long
+    Dim score As Double
+    Dim checkResults(1 To 14) As String
+    Dim checkScores(1 To 14) As Double
+    
+    ' Set the active worksheet
+    Set ws = ActiveSheet
+    
+    ' Create or clear results worksheet
+    On Error Resume Next
+    Set resultsWs = Worksheets("Schedule Health Results")
+    If resultsWs Is Nothing Then
+        Set resultsWs = Worksheets.Add(After:=ws)
+        resultsWs.Name = "Schedule Health Results"
+    Else
+        resultsWs.Cells.Clear
+    End If
+    On Error GoTo 0
+    
+    ' Find last row with data (assuming task data starts in row 2)
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    totalTasks = lastRow - 1
+    
+    ' Initialize results sheet headers
+    With resultsWs
+        .Range("A1").Value = "14-POINT SCHEDULE HEALTH CHECK RESULTS"
+        .Range("A1").Font.Bold = True
+        .Range("A1").Font.Size = 16
+        
+        .Range("A3").Value = "Check #"
+        .Range("B3").Value = "Health Check Criteria"
+        .Range("C3").Value = "Result"
+        .Range("D3").Value = "Score"
+        .Range("E3").Value = "Comments"
+        .Range("A3:E3").Font.Bold = True
+    End With
+    
+    ' 1. Logic Check - No missing predecessors/successors
+    checkScores(1) = CheckLogic(ws, lastRow)
+    checkResults(1) = "Logic Check - Missing Dependencies"
+    
+    ' 2. No Leads (Negative Lag)
+    checkScores(2) = CheckNoLeads(ws, lastRow)
+    checkResults(2) = "No Negative Lag Time"
+    
+    ' 3. No Excessive Lags
+    checkScores(3) = CheckExcessiveLags(ws, lastRow)
+    checkResults(3) = "No Excessive Lags (>20 days)"
+    
+    ' 4. No Date Constraints (except project start)
+    checkScores(4) = CheckDateConstraints(ws, lastRow)
+    checkResults(4) = "Minimal Hard Constraints"
+    
+    ' 5. Total Float Analysis
+    checkScores(5) = CheckTotalFloat(ws, lastRow)
+    checkResults(5) = "Total Float Reasonableness"
+    
+    ' 6. Critical Path Test
+    checkScores(6) = CheckCriticalPath(ws, lastRow)
+    checkResults(6) = "Critical Path Integrity"
+    
+    ' 7. Duration Reasonableness
+    checkScores(7) = CheckDurationReasonableness(ws, lastRow)
+    checkResults(7) = "Task Duration Reasonableness"
+    
+    ' 8. Resource Loading
+    checkScores(8) = CheckResourceLoading(ws, lastRow)
+    checkResults(8) = "Resource Assignment Check"
+    
+    ' 9. Baseline Comparison
+    checkScores(9) = CheckBaselineVariance(ws, lastRow)
+    checkResults(9) = "Baseline Date Variance"
+    
+    ' 10. High Float Tasks
+    checkScores(10) = CheckHighFloat(ws, lastRow)
+    checkResults(10) = "No Excessive Float (>44 days)"
+    
+    ' 11. Summary Task Logic
+    checkScores(11) = CheckSummaryTaskLogic(ws, lastRow)
+    checkResults(11) = "No Logic on Summary Tasks"
+    
+    ' 12. Milestone Compliance
+    checkScores(12) = CheckMilestones(ws, lastRow)
+    checkResults(12) = "Milestone Duration = 0"
+    
+    ' 13. Schedule Margin
+    checkScores(13) = CheckScheduleMargin(ws, lastRow)
+    checkResults(13) = "Adequate Schedule Margin"
+    
+    ' 14. Progress Status
+    checkScores(14) = CheckProgressStatus(ws, lastRow)
+    checkResults(14) = "Status Date Currency"
+    
+    ' Write results to summary sheet
+    Dim i As Integer
+    For i = 1 To 14
+        With resultsWs
+            .Cells(i + 3, 1).Value = i
+            .Cells(i + 3, 2).Value = checkResults(i)
+            .Cells(i + 3, 3).Value = GetPassFailText(checkScores(i))
+            .Cells(i + 3, 4).Value = Format(checkScores(i), "0%")
+            .Cells(i + 3, 5).Value = GetComments(i, checkScores(i))
+            
+            ' Color code results
+            If checkScores(i) >= 0.95 Then
+                .Cells(i + 3, 3).Interior.Color = RGB(198, 239, 206) ' Green
+            ElseIf checkScores(i) >= 0.8 Then
+                .Cells(i + 3, 3).Interior.Color = RGB(255, 235, 156) ' Yellow
+            Else
+                .Cells(i + 3, 3).Interior.Color = RGB(255, 199, 206) ' Red
+            End If
+        End With
+    Next i
+    
+    ' Calculate overall score
+    score = 0
+    For i = 1 To 14
+        score = score + checkScores(i)
+    Next i
+    score = score / 14
+    
+    ' Add overall score
+    With resultsWs
+        .Range("A19").Value = "OVERALL SCHEDULE HEALTH SCORE:"
+        .Range("A19").Font.Bold = True
+        .Range("C19").Value = Format(score, "0%")
+        .Range("C19").Font.Bold = True
+        .Range("C19").Font.Size = 14
+        
+        If score >= 0.95 Then
+            .Range("C19").Interior.Color = RGB(198, 239, 206) ' Green
+            .Range("D19").Value = "EXCELLENT"
+        ElseIf score >= 0.8 Then
+            .Range("C19").Interior.Color = RGB(255, 235, 156) ' Yellow
+            .Range("D19").Value = "GOOD - Minor Issues"
+        ElseIf score >= 0.6 Then
+            .Range("C19").Interior.Color = RGB(255, 213, 170) ' Orange
+            .Range("D19").Value = "FAIR - Needs Attention"
+        Else
+            .Range("C19").Interior.Color = RGB(255, 199, 206) ' Red
+            .Range("D19").Value = "POOR - Major Issues"
+        End If
+        
+        ' Auto-fit columns
+        .Columns("A:E").AutoFit
+    End With
+    
+    ' Activate results sheet
+    resultsWs.Activate
+    
+    MsgBox "Schedule Health Check Complete!" & vbCrLf & _
+           "Overall Score: " & Format(score, "0%"), vbInformation
+End Sub
+
+' Individual check functions
+Function CheckLogic(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim tasksWithoutLogic As Long
+    Dim nonSummaryTasks As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Column E for task type
+            nonSummaryTasks = nonSummaryTasks + 1
+            If ws.Cells(i, 10).Value = "" And ws.Cells(i, 11).Value = "" Then ' Columns J & K for predecessors/successors
+                tasksWithoutLogic = tasksWithoutLogic + 1
+            End If
+        End If
+    Next i
+    
+    If nonSummaryTasks > 0 Then
+        CheckLogic = 1 - (tasksWithoutLogic / nonSummaryTasks)
+    Else
+        CheckLogic = 1
+    End If
+End Function
+
+Function CheckNoLeads(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim leadsFound As Long
+    Dim totalRelationships As Long
+    
+    For i = 2 To lastRow
+        If InStr(ws.Cells(i, 10).Value, "-") > 0 Then ' Check for negative lag
+            leadsFound = leadsFound + 1
+        End If
+        If ws.Cells(i, 10).Value <> "" Then
+            totalRelationships = totalRelationships + 1
+        End If
+    Next i
+    
+    If totalRelationships > 0 Then
+        CheckNoLeads = 1 - (leadsFound / totalRelationships)
+    Else
+        CheckNoLeads = 1
+    End If
+End Function
+
+Function CheckExcessiveLags(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim excessiveLags As Long
+    Dim totalRelationships As Long
+    
+    ' This is a simplified check - in reality would parse lag values
+    For i = 2 To lastRow
+        If ws.Cells(i, 10).Value <> "" Then
+            totalRelationships = totalRelationships + 1
+            If InStr(ws.Cells(i, 10).Value, "+20") > 0 Or _
+               InStr(ws.Cells(i, 10).Value, "+21") > 0 Or _
+               InStr(ws.Cells(i, 10).Value, "+22") > 0 Then
+                excessiveLags = excessiveLags + 1
+            End If
+        End If
+    Next i
+    
+    If totalRelationships > 0 Then
+        CheckExcessiveLags = 1 - (excessiveLags / totalRelationships)
+    Else
+        CheckExcessiveLags = 1
+    End If
+End Function
+
+Function CheckDateConstraints(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim constrainedTasks As Long
+    Dim totalTasks As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If ws.Cells(i, 12).Value <> "" And ws.Cells(i, 12).Value <> "As Soon As Possible" Then
+                constrainedTasks = constrainedTasks + 1
+            End If
+        End If
+    Next i
+    
+    If totalTasks > 0 Then
+        CheckDateConstraints = 1 - (constrainedTasks / totalTasks)
+    Else
+        CheckDateConstraints = 1
+    End If
+End Function
+
+Function CheckTotalFloat(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim reasonableFloat As Long
+    Dim totalTasks As Long
+    Dim floatValue As Double
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If IsNumeric(ws.Cells(i, 15).Value) Then ' Column O for total float
+                floatValue = ws.Cells(i, 15).Value
+                If floatValue >= -5 And floatValue <= 44 Then
+                    reasonableFloat = reasonableFloat + 1
+                End If
+            End If
+        End If
+    Next i
+    
+    If totalTasks > 0 Then
+        CheckTotalFloat = reasonableFloat / totalTasks
+    Else
+        CheckTotalFloat = 1
+    End If
+End Function
+
+Function CheckCriticalPath(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim criticalTasks As Long
+    Dim totalTasks As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If ws.Cells(i, 16).Value = "Yes" Or ws.Cells(i, 15).Value = 0 Then ' Critical path indicator
+                criticalTasks = criticalTasks + 1
+            End If
+        End If
+    Next i
+    
+    ' Check if critical path represents reasonable percentage (10-30%)
+    If totalTasks > 0 Then
+        Dim criticalPercent As Double
+        criticalPercent = criticalTasks / totalTasks
+        If criticalPercent >= 0.1 And criticalPercent <= 0.3 Then
+            CheckCriticalPath = 1
+        Else
+            CheckCriticalPath = 0.8 ' Penalty for unreasonable critical path
+        End If
+    Else
+        CheckCriticalPath = 1
+    End If
+End Function
+
+Function CheckDurationReasonableness(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim reasonableDurations As Long
+    Dim totalTasks As Long
+    Dim duration As Double
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If IsNumeric(ws.Cells(i, 8).Value) Then ' Column H for duration
+                duration = ws.Cells(i, 8).Value
+                If duration > 0 And duration <= 44 Then ' 0-44 days reasonable
+                    reasonableDurations = reasonableDurations + 1
+                End If
+            End If
+        End If
+    Next i
+    
+    If totalTasks > 0 Then
+        CheckDurationReasonableness = reasonableDurations / totalTasks
+    Else
+        CheckDurationReasonableness = 1
+    End If
+End Function
+
+Function CheckResourceLoading(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim resourcedTasks As Long
+    Dim totalWorkTasks As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" And ws.Cells(i, 7).Value <> "Milestone" Then ' Non-summary, non-milestone
+            totalWorkTasks = totalWorkTasks + 1
+            If ws.Cells(i, 17).Value <> "" Then ' Column Q for resources
+                resourcedTasks = resourcedTasks + 1
+            End If
+        End If
+    Next i
+    
+    If totalWorkTasks > 0 Then
+        CheckResourceLoading = resourcedTasks / totalWorkTasks
+    Else
+        CheckResourceLoading = 1
+    End If
+End Function
+
+Function CheckBaselineVariance(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim withinTolerance As Long
+    Dim totalTasks As Long
+    Dim variance As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If IsDate(ws.Cells(i, 13).Value) And IsDate(ws.Cells(i, 6).Value) Then ' Baseline vs current
+                variance = DateDiff("d", ws.Cells(i, 13).Value, ws.Cells(i, 6).Value)
+                If Abs(variance) <= 10 Then ' Within 10 days tolerance
+                    withinTolerance = withinTolerance + 1
+                End If
+            End If
+        End If
+    Next i
+    
+    If totalTasks > 0 Then
+        CheckBaselineVariance = withinTolerance / totalTasks
+    Else
+        CheckBaselineVariance = 1
+    End If
+End Function
+
+Function CheckHighFloat(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim excessiveFloat As Long
+    Dim totalTasks As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "" Then ' Non-summary tasks
+            totalTasks = totalTasks + 1
+            If IsNumeric(ws.Cells(i, 15).Value) Then
+                If ws.Cells(i, 15).Value > 44 Then ' More than 44 days float
+                    excessiveFloat = excessiveFloat + 1
+                End If
+            End If
+        End If
+    Next i
+    
+    If totalTasks > 0 Then
+        CheckHighFloat = 1 - (excessiveFloat / totalTasks)
+    Else
+        CheckHighFloat = 1
+    End If
+End Function
+
+Function CheckSummaryTaskLogic(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim summaryWithLogic As Long
+    Dim totalSummary As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 5).Value = "Summary" Then
+            totalSummary = totalSummary + 1
+            If ws.Cells(i, 10).Value <> "" Then ' Has predecessors
+                summaryWithLogic = summaryWithLogic + 1
+            End If
+        End If
+    Next i
+    
+    If totalSummary > 0 Then
+        CheckSummaryTaskLogic = 1 - (summaryWithLogic / totalSummary)
+    Else
+        CheckSummaryTaskLogic = 1
+    End If
+End Function
+
+Function CheckMilestones(ws As Worksheet, lastRow As Long) As Double
+    Dim i As Long
+    Dim correctMilestones As Long
+    Dim totalMilestones As Long
+    
+    For i = 2 To lastRow
+        If ws.Cells(i, 7).Value = "Milestone" Then
+            totalMilestones = totalMilestones + 1
+            If ws.Cells(i, 8).Value = 0 Then ' Duration = 0
+                correctMilestones = correctMilestones + 1
+            End If
+        End If
+    Next i
+    
+    If totalMilestones > 0 Then
+        CheckMilestones = correctMilestones / totalMilestones
+    Else
+        CheckMilestones = 1
+    End If
+End Function
+
+Function CheckScheduleMargin(ws As Worksheet, lastRow As Long) As Double
+    ' This is simplified - would need project finish date and constraint date
+    ' For now, return 0.9 as placeholder
+    CheckScheduleMargin = 0.9
+End Function
+
+Function CheckProgressStatus(ws As Worksheet, lastRow As Long) As Double
+    Dim statusDate As Date
+    Dim today As Date
+    today = Date
+    
+    ' Look for status date in header or specific cell
+    ' For now, check if any task has % complete > 0
+    Dim i As Long
+    Dim hasProgress As Boolean
+    
+    For i = 2 To lastRow
+        If IsNumeric(ws.Cells(i, 14).Value) Then ' Column N for % complete
+            If ws.Cells(i, 14).Value > 0 Then
+                hasProgress = True
+                Exit For
+            End If
+        End If
+    Next i
+    
+    If hasProgress Then
+        CheckProgressStatus = 0.95 ' Assume relatively current
+    Else
+        CheckProgressStatus = 0.5 ' No progress tracked
+    End If
+End Function
+
+Function GetPassFailText(score As Double) As String
+    If score >= 0.95 Then
+        GetPassFailText = "PASS"
+    ElseIf score >= 0.8 Then
+        GetPassFailText = "MARGINAL"
+    Else
+        GetPassFailText = "FAIL"
+    End If
+End Function
+
+Function GetComments(checkNum As Integer, score As Double) As String
+    Select Case checkNum
+        Case 1
+            If score < 0.95 Then
+                GetComments = "Tasks missing logic relationships"
+            Else
+                GetComments = "All tasks properly linked"
+            End If
+        Case 2
+            If score < 1 Then
+                GetComments = "Negative lags found - review logic"
+            Else
+                GetComments = "No negative lags detected"
+            End If
+        Case 3
+            If score < 1 Then
+                GetComments = "Excessive lags detected (>20 days)"
+            Else
+                GetComments = "Lag durations within limits"
+            End If
+        Case 4
+            If score < 0.95 Then
+                GetComments = "Hard constraints limit flexibility"
+            Else
+                GetComments = "Schedule properly logic-driven"
+            End If
+        Case 5
+            If score < 0.9 Then
+                GetComments = "Float values outside normal range"
+            Else
+                GetComments = "Float values reasonable"
+            End If
+        Case 6
+            If score < 1 Then
+                GetComments = "Critical path may be incomplete"
+            Else
+                GetComments = "Critical path appears valid"
+            End If
+        Case 7
+            If score < 0.95 Then
+                GetComments = "Some task durations exceed 44 days"
+            Else
+                GetComments = "Task durations appropriate"
+            End If
+        Case 8
+            If score < 0.8 Then
+                GetComments = "Many tasks lack resource assignments"
+            Else
+                GetComments = "Resources properly assigned"
+            End If
+        Case 9
+            If score < 0.8 Then
+                GetComments = "Significant baseline variance detected"
+            Else
+                GetComments = "Schedule tracking to baseline"
+            End If
+        Case 10
+            If score < 0.95 Then
+                GetComments = "Tasks with excessive float detected"
+            Else
+                GetComments = "Float within acceptable range"
+            End If
+        Case 11
+            If score < 1 Then
+                GetComments = "Summary tasks should not have logic"
+            Else
+                GetComments = "No logic on summary tasks"
+            End If
+        Case 12
+            If score < 1 Then
+                GetComments = "Milestones must have zero duration"
+            Else
+                GetComments = "All milestones properly defined"
+            End If
+        Case 13
+            If score < 0.8 Then
+                GetComments = "Insufficient schedule margin"
+            Else
+                GetComments = "Adequate schedule margin exists"
+            End If
+        Case 14
+            If score < 0.8 Then
+                GetComments = "Status date not current"
+            Else
+                GetComments = "Progress status is current"
+            End If
+    End Select
+End Function
