@@ -151,10 +151,17 @@ Function Check4_DateConstraints(proj As Project) As Double
         If Not t Is Nothing Then
             If Not t.Summary And t.Active Then
                 totalTasks = totalTasks + 1
-                ' Check for hard constraints
+                ' Check for hard constraints using numeric values
+                ' 0 = As Soon As Possible (ASAP)
+                ' 1 = As Late As Possible (ALAP)
+                ' 2 = Must Start On (MSO)
+                ' 3 = Must Finish On (MFO)
+                ' 4 = Start No Earlier Than (SNET)
+                ' 5 = Start No Later Than (SNLT)
+                ' 6 = Finish No Earlier Than (FNET)
+                ' 7 = Finish No Later Than (FNLT)
                 Select Case t.ConstraintType
-                    Case pjMustStartOn, pjMustFinishOn, pjStartNoEarlierThan, _
-                         pjStartNoLaterThan, pjFinishNoEarlierThan, pjFinishNoLaterThan
+                    Case 2, 3, 4, 5, 6, 7  ' All constraints except ASAP and ALAP
                         constrainedTasks = constrainedTasks + 1
                 End Select
             End If
